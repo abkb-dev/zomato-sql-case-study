@@ -1,4 +1,4 @@
-# 🍽️ Zomato SQL Case Study
+# 🛵💨 Zomato SQL Case Study
 
 This project is a hands-on SQL case study analyzing food delivery and restaurant performance using a Zomato-style database. The analysis covers user behavior, restaurant trends, food sales, and delivery logistics using various SQL concepts including joins, subqueries, aggregations, and CTEs.
 
@@ -17,10 +17,9 @@ This project is a hands-on SQL case study analyzing food delivery and restaurant
 ---
 
 ## 🛠️ Tech Stack
-
-- **Database**: MySQL
-- **Language**: SQL
-- **Tools**: SQL IDE (MySQL Workbench)
+![Database: MySQL](https://img.shields.io/badge/Database-MySQL-00758F?style=for-the-badge&logo=mysql&logoColor=white)
+![Language: SQL](https://img.shields.io/badge/Language-SQL-4B8BBE?style=for-the-badge)
+![Tool: MySQL Workbench](https://img.shields.io/badge/Tool-MySQL%20Workbench-F9A825?style=for-the-badge&logo=mysql&logoColor=white)
 
 ---
 
@@ -35,5 +34,4 @@ This project is a hands-on SQL case study analyzing food delivery and restaurant
 - Common Table Expressions (CTEs)
 - Set operations (`EXCEPT`, `NOT IN`)
 - Use of `ORDER BY`, `LIMIT`, `RANDOM()`
-
 
