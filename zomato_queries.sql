@@ -1,186 +1,154 @@
--- 1.Select a particular database
+-- 1. Select the database to use
 USE zomato;
--- 2.count number of users
+
+-- 2. Count the total number of users
 SELECT COUNT(*) FROM users;
--- 3.return random user records
-select * from users order by rand() limit 5;
--- 4. Find null values
-# let us find those orders on which we didnt get rating.
-select * from orders 
-where restaurant_rating is null;
--- 5. replace null restaurant_rating values with zero
-update orders
-set restaurant_rating = 0 
-where restaurant_rating is null;
--- 6. find number of orders placed by each customer
-select u.name, count(*) as `num_of_orders`
-from users u left join orders o
-on u.user_id = o.user_id
-group by u.user_id;
--- 7.find restaurant with most number of menu items
-# konse restaurant me sab se zyada menu items hai
-select r.r_name,count(*) as `num_of_menu_items` 
-from restraunts r join menu m
-on r.r_id = m.r_id
-group by r.r_id
-order by num_of_menu_items desc limit 1;
 
--- 8.find number of votes and avg rating for all the restaurants.
-# each rest me kitne orders place hue wo hai num_of_votes
-# and each rest ki avg_rating kitni hai, to jabhi ek user ne order place kiya
-select r.r_name,count(*) as 'num_of_votes', 
-round(avg(restaurant_rating),2) as 'avg_rest_rating'
-from orders o join restraunts r
-on o.r_id  = r.r_id
-group by r.r_id;
--- or --
-select r_id, count(order_id) as 'num_of_votes', 
-round(avg(restaurant_rating),2) as 'avg_rest_rating'
-from orders
-group by r_id;
+-- 3. Retrieve 5 random user records
+SELECT * FROM users ORDER BY RAND() LIMIT 5;
 
--- 9.find the food that is being sold at most number of restaurants.
-# wo konsa food hai, jo sabse zyada restraunt me bikta ho.
-select f.f_name, count(*) as `num_rest_where_food_sold`-- i.e. count(r.r_id)
-from restraunts r join menu m
-on r.r_id = m.r_id join food f
-on m.f_id = f.f_id
-group by f.f_id
-order by num_rest_where_food_sold desc limit 1;
+-- 4. Find all orders that have no restaurant rating
+SELECT * FROM orders 
+WHERE restaurant_rating IS NULL;
 
--- 10. find restaurant with max revenue in a given month
-select r.r_name, month(o.date), sum(amount) as `revenue_per_month`
-from orders o join restraunts r
-on o.r_id = r.r_id
-group by r.r_id,month(date)
-order by sum(amount) desc limit 1;
+-- 5. Replace all NULL restaurant ratings with zero
+UPDATE orders
+SET restaurant_rating = 0 
+WHERE restaurant_rating IS NULL;
 
--- 11. find restaurants with total sales > 1500
-select r.r_name,sum(amount) as `total_sales_per_rest`
-from orders o join restraunts r
-on o.r_id = r.r_id
-group by r.r_id
-having total_sales_per_rest > 1500;
+-- 6. Get the number of orders placed by each customer
+SELECT u.name, COUNT(*) AS num_of_orders
+FROM users u 
+LEFT JOIN orders o ON u.user_id = o.user_id
+GROUP BY u.user_id;
 
--- 12. find customers who have never ordered
-select u.user_id,u.name
-from users u left join orders o
-on u.user_id = o.user_id
-where o.order_id is null;
--- or by using subqueries
-select user_id,name from users
-where user_id not in (select distinct(user_id) from orders);
--- or by using set operator which is except
-select user_id,name from users
-except
-select t1.user_id,t2.name from orders t1 join users t2
-on t1.user_id = t2.user_id;
+-- 7. Find the restaurant that offers the highest number of menu items
+SELECT r.r_name, COUNT(*) AS num_of_menu_items 
+FROM restraunts r 
+JOIN menu m ON r.r_id = m.r_id
+GROUP BY r.r_id
+ORDER BY num_of_menu_items DESC 
+LIMIT 1;
 
--- 13.Show order details of a particular customer in a given date range
-# ek particular customer ke order details(matlab fooditems etc) in particular date range.
-select u.name,o.date,f.f_name 
-from users u join orders o 
-on u.user_id = o.user_id
-join order_details od 
-on o.order_id = od.order_id
-join food f 
-on od.f_id = f.f_id
-where u.name = 'ankit' and
-o.date between '2022-05-15' and '2022-06-15';
+-- 8. Get the number of orders (votes) and average restaurant rating for all restaurants
+SELECT r.r_name, COUNT(*) AS num_of_votes, 
+ROUND(AVG(restaurant_rating), 2) AS avg_rest_rating
+FROM orders o 
+JOIN restraunts r ON o.r_id = r.r_id
+GROUP BY r.r_id;
 
--- 14. Customer favorite food
-# first we will find, 
-# id,name,foodname and number of times they ordered
-select u.name,f.f_name,count(*) as `num` -- number of times that food ordered
-from users u join orders o
-on u.user_id = o.user_id join order_details od
-on o.order_id = od.order_id join food f
-on od.f_id = f.f_id
-group by u.name,f.f_name;
-# the above result set gives har customer ne har food (customer-food pair) kitne bar order kiya hai.
-# second, we will create CTE for the above result set, and we iterate over each record where we select
-# only those customer - food record where num_of_times the food ordered by customer is equal to maximum
-# number of times the food orded by that current customer (which can be done by correlated subquery)
-WITH temp_table AS (select u.user_id,u.name,f.f_name,count(*) as `num` -- number of times that food ordered
-					from users u join orders o
-					on u.user_id = o.user_id join order_details od
-					on o.order_id = od.order_id join food f
-					on od.f_id = f.f_id
-					group by u.name,f.f_name)
-select user_id,name,f_name,num
-from temp_table t1
-where num = (select max(num) from temp_table t2 where t2.user_id = t1.user_id);
+-- Alternative version by restaurant ID
+SELECT r_id, COUNT(order_id) AS num_of_votes, 
+ROUND(AVG(restaurant_rating), 2) AS avg_rest_rating
+FROM orders
+GROUP BY r_id;
 
--- 15. find most costly restaurants(Avg price/dish)
--- to get avg cost per dist for each restaurant, we first group by r_id,
--- then in each restaurant we get total number of food_items they sell and total price (sum) of
--- all the dishes they sell.
-# now to get avg_price_per_dish_for_each_restaurant just divide sum(price)/count(*)
-select r_name, sum(price)/count(*) as 'avg_price_per_dish'
-from restraunts r join menu m
-on r.r_id = m.r_id
-group by r.r_id
-order by avg_price_per_dish desc limit 1;
+-- 9. Identify the food item that is sold in the highest number of restaurants
+SELECT f.f_name, COUNT(*) AS num_rest_where_food_sold
+FROM restraunts r 
+JOIN menu m ON r.r_id = m.r_id 
+JOIN food f ON m.f_id = f.f_id
+GROUP BY f.f_id
+ORDER BY num_rest_where_food_sold DESC 
+LIMIT 1;
 
--- 16. find delivery partner compensation using the formula (number_of_deliveries * 100 + 1000*avg_rating)
--- Delivery partner compensation means the total money a delivery person (like a rider or driver) 
--- earns from a company (like Zomato or Swiggy) for delivering orders.
--- so we want delivery partner name and its salary(delivery partner compensation)
-select o.partner_id ,d.partner_name,
-(count(*) * 100 + 1000 * avg(delivery_rating)) as 'salary'
-from orders o join delivery_partner d
-on o.partner_id = d.partner_id
-group by o.partner_id;
+-- 10. Find the restaurant that earned the highest revenue in any month
+SELECT r.r_name, MONTH(o.date), SUM(amount) AS revenue_per_month
+FROM orders o 
+JOIN restraunts r ON o.r_id = r.r_id
+GROUP BY r.r_id, MONTH(date)
+ORDER BY SUM(amount) DESC 
+LIMIT 1;
 
--- 17. find revenue per month for specific restaurant
-# first i will find revenue generated by each rest in each month
-# second i will filter out the rest i want by using where clause.
-select r.r_name,monthname(o.date),sum(amount)
-from orders o join restraunts r
-on o.r_id = r.r_id
-where r.r_name = 'dominos' # 2nd step
-group by o.r_id,monthname(date); # 1st step
+-- 11. List restaurants whose total sales exceed 1500
+SELECT r.r_name, SUM(amount) AS total_sales_per_rest
+FROM orders o 
+JOIN restraunts r ON o.r_id = r.r_id
+GROUP BY r.r_id
+HAVING total_sales_per_rest > 1500;
 
--- 18. find all the restaurant which are purely veg(only veg)
-select r_id
-from menu m join food f
-on m.f_id = f.f_id
-where type != 'veg'; -- this gives all rest_id's which sold food other than veg.
+-- 12. Find all customers who have never placed an order
+SELECT u.user_id, u.name
+FROM users u 
+LEFT JOIN orders o ON u.user_id = o.user_id
+WHERE o.order_id IS NULL;
 
--- now by using this list of queries, we will only select those r_id's/r_name which doesnt 
--- came in above list.
-select r_name from restraunts
-where r_id not in (select r_id
-				   from menu m join food f
-				   on m.f_id = f.f_id
-				   where type != 'veg'); -- these are the rest which solds purely veg food.
+-- Alternative using subquery
+SELECT user_id, name 
+FROM users
+WHERE user_id NOT IN (
+	SELECT DISTINCT(user_id) 
+	FROM orders
+);
 
--- 19. find min and max order value for all the customers
--- meaning har customer ke liye sabse zyada order amount and sabse kam order amount value for each customer
-select u.name, max(amount), min(amount)
-from users u join orders o
-on u.user_id = o.user_id
-group by u.user_id;
+-- Alternative using EXCEPT (if supported by the DBMS)
+SELECT user_id, name FROM users
+EXCEPT
+SELECT t1.user_id, t2.name 
+FROM orders t1 
+JOIN users t2 ON t1.user_id = t2.user_id;
 
+-- 13. Display food items ordered by a specific customer within a given date range
+SELECT u.name, o.date, f.f_name 
+FROM users u 
+JOIN orders o ON u.user_id = o.user_id
+JOIN order_details od ON o.order_id = od.order_id
+JOIN food f ON od.f_id = f.f_id
+WHERE u.name = 'ankit' 
+AND o.date BETWEEN '2022-05-15' AND '2022-06-15';
 
+-- 14. Find each customer’s most frequently ordered food item
+WITH temp_table AS (
+	SELECT u.user_id, u.name, f.f_name, COUNT(*) AS num
+	FROM users u 
+	JOIN orders o ON u.user_id = o.user_id 
+	JOIN order_details od ON o.order_id = od.order_id 
+	JOIN food f ON od.f_id = f.f_id
+	GROUP BY u.name, f.f_name
+)
+SELECT user_id, name, f_name, num
+FROM temp_table t1
+WHERE num = (
+	SELECT MAX(num) 
+	FROM temp_table t2 
+	WHERE t2.user_id = t1.user_id
+);
 
+-- 15. Identify the restaurant with the highest average price per dish
+SELECT r_name, SUM(price) / COUNT(*) AS avg_price_per_dish
+FROM restraunts r 
+JOIN menu m ON r.r_id = m.r_id
+GROUP BY r.r_id
+ORDER BY avg_price_per_dish DESC 
+LIMIT 1;
 
+-- 16. Calculate delivery partner compensation
+-- Formula: (Number of deliveries * 100) + (1000 * Average delivery rating)
+SELECT o.partner_id, d.partner_name,
+(COUNT(*) * 100 + 1000 * AVG(delivery_rating)) AS salary
+FROM orders o 
+JOIN delivery_partner d ON o.partner_id = d.partner_id
+GROUP BY o.partner_id;
 
+-- 17. Retrieve monthly revenue for a specific restaurant
+SELECT r.r_name, MONTHNAME(o.date), SUM(amount)
+FROM orders o 
+JOIN restraunts r ON o.r_id = r.r_id
+WHERE r.r_name = 'dominos'
+GROUP BY o.r_id, MONTHNAME(date);
 
+-- 18. Find restaurants that only serve vegetarian food
+SELECT r_name 
+FROM restraunts
+WHERE r_id NOT IN (
+	SELECT r_id
+	FROM menu m 
+	JOIN food f ON m.f_id = f.f_id
+	WHERE type != 'veg'
+);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+-- 19. Get the maximum and minimum order values for each customer
+SELECT u.name, MAX(amount) AS max_order, MIN(amount) AS min_order
+FROM users u 
+JOIN orders o ON u.user_id = o.user_id
+GROUP BY u.user_id;
