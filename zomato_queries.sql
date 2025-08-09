@@ -152,3 +152,15 @@ SELECT u.name, MAX(amount) AS max_order, MIN(amount) AS min_order
 FROM users u 
 JOIN orders o ON u.user_id = o.user_id
 GROUP BY u.user_id;
+
+-- 20. Find the top 2 highest-spending Zomato customers for each month
+/* INSIGHT: Identifies monthly "whale" customers who contribute the most revenue.
+   Zomato can use this list to offer loyalty rewards, premium offers, 
+   or exclusive discounts to retain them and increase lifetime value.
+*/
+select * from (select monthname(date) as 'month',user_id,sum(amount) as 'total',
+			   dense_rank() over(partition by monthname(date) order by sum(amount)) as 'month_user_rank'
+			   from orders
+			   group by monthname(date),user_id
+			   order by month(date)) as t
+where t.month_user_rank < 3;
