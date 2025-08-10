@@ -164,3 +164,14 @@ select * from (select monthname(date) as 'month',user_id,sum(amount) as 'total',
 			   group by monthname(date),user_id
 			   order by month(date)) as t
 where t.month_user_rank < 3;
+
+-- 21. Calculate Month-on-Month (MoM) revenue growth for Zomato
+-- So, We have to Track how much more (or less) revenue Zomato earns compared to the previous month.
+-- INSIGHT: Helps identify seasonal trends, evaluate marketing impact, and quickly spot declining revenue.
+
+select monthname(date) as 'month', sum(amount) as 'monthly_revenue',
+lag(sum(amount)) over() as 'prev_month_revenue',
+round((((sum(amount) - lag(sum(amount)) over()) / lag(sum(amount)) over())) * 100,2) as 'growth_percentage'
+from orders
+group by monthname(date)
+order by month(date);
